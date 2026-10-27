@@ -19,6 +19,7 @@
 | app.js | 화면 동작 및 날씨 API 호출 |
 | config.js | Supabase URL과 공개용 키 |
 | setup.sql | wx_tasks 표·제약·RLS 정책·초기 일정 |
+| api/kma.js | 지역별 DB 일정·KMA 날씨·판단 JSON API |
 | PRD.md | 무엇을 · 왜 만드는지 |
 | CLAUDE.md | AI가 지킬 작업 규칙 |
 | .gitignore | GitHub에 올리지 않을 파일 목록 |
@@ -28,3 +29,8 @@
 - 날씨 API에 연결할 수 없어도 일정 목록은 표시되며, 실패한 지역의 일정은 '날씨 확인 전'으로 표시됩니다.
 - `?test=wind`를 주소 끝에 붙이면 풍속을 12m/s로 적용해 고소 일정을 포함한 판단 규칙을 시험할 수 있습니다.
 - '오늘 판단 md로 저장' 버튼을 누르면 현재 일정 표와 판단 기준을 `현장일정_판단_YYYY-MM-DD.md` 파일로 내려받습니다.
+
+## 지역별 KMA API
+- Vercel 환경변수 `KMA_KEY`, `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`를 설정합니다. Supabase 키는 공개용 키만 사용하고 service role 키는 설정하지 마세요.
+- `GET /api/kma?region=대전`처럼 호출하면 해당 지역의 Supabase 일정, KMA 오늘 최고기온·최대풍속·강수확률, 일정별 판단 결과를 JSON으로 반환합니다.
+- 성공 응답은 `{ "region": "대전", "weather": { "tempMax": 0, "windMax": 0, "rainProb": 0 }, "tasks": [{ "id": "...", "title": "...", "region": "대전", "kind": "야외", "owner": "...", "weather": {}, "level": "ok", "decision": "진행" }] }` 형식입니다. 지역이 없거나 지원되지 않으면 400, upstream 연결에 실패하면 502를 반환합니다.

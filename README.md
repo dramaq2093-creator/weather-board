@@ -2,9 +2,13 @@
 
 오늘 현장 일정과 Open-Meteo에서 받은 지역별 날씨를 한 화면에서 보고, 날씨 때문에 주의 · 중지를 검토할 일정을 표시합니다. (교육용 가상 데이터)
 
-## 여는 법
-- 내 PC : `index.html` 더블클릭 (JSON을 읽지 못하면 배포 주소로 열기)
-- 인터넷 : (배포 후 Vercel 주소를 여기에 적기)
+## Supabase 설정 및 여는 법
+1. Supabase SQL Editor에서 `setup.sql` 전체를 실행합니다. `public.wx_tasks` 표, 읽기·추가 RLS 정책, 허용 값 제약과 가상 일정 6건이 생성됩니다.
+2. `config.js`의 두 줄에 프로젝트 URL과 공개용 publishable/anon 키를 입력합니다. `service_role` 비밀 키는 사용하지 마세요.
+3. `index.html`을 더블클릭하거나 배포 주소에서 엽니다. Supabase에서 일정을 읽고, 추가 일정도 같은 표에 저장합니다.
+
+공개용 키는 브라우저에 보입니다. SQL은 익명 방문자의 읽기와 일정 추가만 허용하고 수정·삭제는 허용하지 않습니다. 지역과 구분, 제목·담당 필수값은 DB 제약으로 확인합니다.
+외부 스크립트는 Supabase의 `supabase-js` 하나만 사용합니다.
 
 ## 파일
 | 파일 | 역할 |
@@ -13,12 +17,11 @@
 | style.css | 디자인 |
 | logic.js | 날씨 API 주소·응답 해석 및 판단 규칙 |
 | app.js | 화면 동작 및 날씨 API 호출 |
-| data/tasks.json | 기본 일정 목록 |
+| config.js | Supabase URL과 공개용 키 |
+| setup.sql | wx_tasks 표·제약·RLS 정책·초기 일정 |
 | PRD.md | 무엇을 · 왜 만드는지 |
 | CLAUDE.md | AI가 지킬 작업 규칙 |
 | .gitignore | GitHub에 올리지 않을 파일 목록 |
-
-기본 일정은 `data/tasks.json`에서 읽고, 화면에서 추가한 일정만 브라우저 저장소에 저장합니다. JSON 파일은 웹 주소로 열어야 하므로 `index.html`을 더블클릭해 일정 데이터를 읽지 못하면 배포 주소로 열어 주세요.
 
 ## 오늘 날씨
 - Open-Meteo에서 세종 · 대전 · 태안 · 보령의 오늘 최고 기온, 최대 풍속(m/s), 강수확률을 불러옵니다.

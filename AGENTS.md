@@ -14,8 +14,9 @@
 - index.html : 화면 구조
 - style.css  : 디자인
 - logic.js   : 판단 규칙만 (화면을 다루는 코드 금지)
-- app.js     : 화면 동작 (JSON 일정 읽기, 목록 그리기, 추가 일정 저장)
-- data/tasks.json : 기본 일정 목록
+- app.js     : 화면 동작 (Supabase 일정 읽기·추가, 목록 그리기)
+- config.js  : Supabase 주소와 공개용 키 두 줄
+- setup.sql  : Supabase wx_tasks 표와 제약·정책 설정
 - PRD.md · AGENTS.md · CLAUDE.md · README.md : 문서
 
 ## 작업 방식
@@ -27,5 +28,7 @@
 - 가상 데이터만 사용한다. 실제 이름 · 연락처 · 기관 내부 자료를 넣지 않는다.
 - 사용자가 입력한 글자는 textContent 로 표시한다.
 - 비밀 키는 코드 · 채팅 · GitHub 에 넣지 않는다.
-- 기본 일정은 data/tasks.json에서 읽고, 화면에서 추가한 일정만 브라우저 저장소에 저장한다.
+- 일정은 Supabase wx_tasks 표에서 읽고 추가한다. 브라우저 저장소를 일정 저장소로 사용하지 않는다.
+- config.js에는 Supabase 주소와 공개용 키만 둔다. 비밀 키(service_role)는 절대 사용하지 않는다.
+- Supabase 공개용 키는 브라우저에 노출되므로 권한은 RLS 정책으로 제한하고, 구분·지역 규칙은 DB 제약으로도 검사한다.
 - CLAUDE.md를 고치면 AGENTS.md도 함께 고친다.

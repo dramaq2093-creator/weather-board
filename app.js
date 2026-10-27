@@ -3,7 +3,7 @@
 let tasks = [];
 let weatherByRegion = {};
 let tasksLoaded = false;
-let taskStorageAvailable = true;
+let supabaseClient = null;
 
 const today = new Date();
 document.getElementById('todayDate').textContent = [
@@ -12,45 +12,28 @@ document.getElementById('todayDate').textContent = [
   String(today.getDate()).padStart(2, '0'),
 ].join('-');
 
-function readAddedTasks() {
-  const stored = localStorage.getItem('wx_added');
-  const saved = stored ? JSON.parse(stored) : [];
-  if (!Array.isArray(saved)) throw new Error('저장된 추가 일정이 배열 형식이 아닙니다.');
-  return saved;
-}
-
 async function loadTasks() {
   const message = document.getElementById('dataMessage');
-  let baseTasks;
   try {
-    const response = await fetch('data/tasks.json');
-    if (!response.ok) throw new Error('HTTP ' + response.status);
-    baseTasks = await response.json();
-    if (!Array.isArray(baseTasks)) throw new Error('기본 일정 JSON이 배열 형식이 아닙니다.');
+    const { data, error } = await supabaseClient
+      .from('wx_tasks')
+      .select('id, title, region, kind, owner')
+      .order('created_at', { ascending: true })
+      .order('id', { ascending: true });
+    if (error) throw error;
+    tasks = data;
+    tasksLoaded = true;
+    renderTasks();
+    return true;
   } catch (error) {
-    console.error('기본 일정 JSON을 읽지 못했습니다.', error);
+    console.error('Supabase에서 일정을 읽지 못했습니다.', error);
     tasks = [];
     renderTasks();
     message.hidden = false;
-    message.textContent = '일정 데이터를 읽지 못했습니다. 배포 주소로 열어 주세요.';
+    message.textContent = 'Supabase 일정 조회에 실패했습니다. 설정과 setup.sql 실행 여부를 확인해 주세요.';
     document.getElementById('weatherBox').textContent = '일정 데이터를 읽지 못해 날씨를 불러오지 않았습니다.';
     return false;
   }
-
-  let savedTasks = [];
-  try {
-    savedTasks = readAddedTasks();
-  } catch (error) {
-    console.error('브라우저에 저장된 추가 일정을 읽지 못했습니다.', error);
-    taskStorageAvailable = false;
-    message.hidden = false;
-    message.textContent = '브라우저에 저장된 추가 일정을 읽지 못했습니다.';
-  }
-
-  tasks = baseTasks.concat(savedTasks);
-  tasksLoaded = true;
-  renderTasks();
-  return true;
 }
 
 function weatherText(w) {
@@ -114,12 +97,14 @@ async function loadWeather() {
 
 function addTask(e) {
   e.preventDefault();
+  saveTask(e.currentTarget);
+}
+
+async function saveTask(form) {
   const message = document.getElementById('dataMessage');
-  if (!tasksLoaded || !taskStorageAvailable) {
+  if (!tasksLoaded) {
     message.hidden = false;
-    message.textContent = !tasksLoaded
-      ? '일정 데이터를 읽지 못했습니다. 배포 주소로 열어 주세요.'
-      : '브라우저에 저장된 추가 일정을 확인해 주세요.';
+    message.textContent = '일정 목록을 불러온 뒤 다시 시도해 주세요.';
     return;
   }
 
@@ -130,20 +115,22 @@ function addTask(e) {
     owner: document.getElementById('ownerInput').value.trim(),
   };
   if (!t.title || !t.owner) return;
-  let saved;
   try {
-    saved = readAddedTasks();
-    saved.push(t);
-    localStorage.setItem('wx_added', JSON.stringify(saved));
+    const { data, error } = await supabaseClient
+      .from('wx_tasks')
+      .insert(t)
+      .select('id, title, region, kind, owner')
+      .single();
+    if (error) throw error;
+    tasks.push(data);
+    form.reset();
+    message.hidden = true;
+    renderTasks();
   } catch (error) {
-    console.error('추가 일정을 브라우저에 저장하지 못했습니다.', error);
+    console.error('Supabase에 일정을 저장하지 못했습니다.', error);
     message.hidden = false;
-    message.textContent = '추가 일정을 저장하지 못했습니다. 브라우저 저장 공간을 확인해 주세요.';
-    return;
+    message.textContent = '일정을 저장하지 못했습니다. Supabase 연결과 입력값을 확인해 주세요.';
   }
-  e.target.reset();
-  tasks.push(t);
-  renderTasks();
 }
 
 function saveJudgmentMarkdown() {
@@ -180,6 +167,33 @@ function saveJudgmentMarkdown() {
 
 document.getElementById('taskForm').addEventListener('submit', addTask);
 document.getElementById('saveJudgmentButton').addEventListener('click', saveJudgmentMarkdown);
-loadTasks().then(loaded => {
-  if (loaded) loadWeather();
-});
+
+async function startApp() {
+  const message = document.getElementById('dataMessage');
+  if (!SUPABASE_URL.startsWith('https://') || SUPABASE_URL.includes('YOUR_PROJECT_ID')
+    || SUPABASE_PUBLISHABLE_KEY.includes('YOUR_SUPABASE_')) {
+    message.hidden = false;
+    message.textContent = 'config.js에 Supabase 주소와 공개용 키를 설정해 주세요.';
+    document.getElementById('weatherBox').textContent = 'Supabase 설정 후 일정을 불러올 수 있습니다.';
+    return;
+  }
+  if (!window.supabase || typeof window.supabase.createClient !== 'function') {
+    message.hidden = false;
+    message.textContent = 'supabase-js를 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.';
+    document.getElementById('weatherBox').textContent = 'Supabase 연결 라이브러리를 불러오지 못했습니다.';
+    return;
+  }
+
+  try {
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+  } catch (error) {
+    console.error('Supabase 클라이언트를 초기화하지 못했습니다.', error);
+    message.hidden = false;
+    message.textContent = 'Supabase 설정을 확인해 주세요.';
+    document.getElementById('weatherBox').textContent = 'Supabase 설정을 확인할 수 없습니다.';
+    return;
+  }
+  if (await loadTasks()) loadWeather();
+}
+
+startApp();

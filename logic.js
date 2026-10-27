@@ -49,6 +49,37 @@ function judge(kind, w) {
   return { level: 'ok', text: '진행' };
 }
 
+function buildJudgmentMarkdown(rows, date) {
+  const escapeCell = value => String(value)
+    .replace(/\\/g, '\\\\')
+    .replace(/\|/g, '\\|')
+    .replace(/\r?\n/g, '<br>');
+  const lines = [
+    '# 오늘 판단 (' + escapeCell(date) + ')',
+    '',
+    '| 일정 | 지역 | 구분 | 담당 | 날씨 | 판단 |',
+    '| --- | --- | --- | --- | --- | --- |',
+    ...rows.map(row => '| ' + [
+      row.title,
+      row.region,
+      row.kind,
+      row.owner,
+      row.weather,
+      row.decision,
+    ].map(escapeCell).join(' | ') + ' |'),
+    '',
+    '판단 기준: 실내는 영향 없음, 고소 풍속 10m/s 이상은 중지 검토, 최고 기온 33℃ 이상은 폭염 휴식, 강수확률 60% 이상은 우천 주의 (복수 조건 시 강풍 → 폭염 → 우천 순).',
+  ];
+  return lines.join('\n');
+}
+
 if (typeof module !== 'undefined') {
-  module.exports = { RULES, WEATHER_LOCATIONS, buildWeatherUrl, parseWeatherResponse, judge };
+  module.exports = {
+    RULES,
+    WEATHER_LOCATIONS,
+    buildWeatherUrl,
+    parseWeatherResponse,
+    judge,
+    buildJudgmentMarkdown,
+  };
 }

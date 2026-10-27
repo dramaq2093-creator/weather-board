@@ -146,7 +146,40 @@ function addTask(e) {
   renderTasks();
 }
 
+function saveJudgmentMarkdown() {
+  if (!tasksLoaded) {
+    const message = document.getElementById('dataMessage');
+    message.hidden = false;
+    message.textContent = '일정 데이터를 읽지 못해 판단 파일을 저장할 수 없습니다.';
+    return;
+  }
+
+  const date = document.getElementById('todayDate').textContent;
+  const rows = tasks.map(task => {
+    const weather = weatherByRegion[task.region];
+    return {
+      title: task.title,
+      region: task.region,
+      kind: task.kind,
+      owner: task.owner,
+      weather: weatherText(weather),
+      decision: judge(task.kind, weather).text,
+    };
+  });
+  const markdown = buildJudgmentMarkdown(rows, date);
+  const file = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(file);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = '현장일정_판단_' + date + '.md';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
 document.getElementById('taskForm').addEventListener('submit', addTask);
+document.getElementById('saveJudgmentButton').addEventListener('click', saveJudgmentMarkdown);
 loadTasks().then(loaded => {
   if (loaded) loadWeather();
 });

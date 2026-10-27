@@ -13,6 +13,13 @@ const SAMPLE_TASKS = [
 let tasks = [];
 let weatherByRegion = {};   // 03 단원에서 지역별 날씨를 넣음
 
+const today = new Date();
+document.getElementById('todayDate').textContent = [
+  today.getFullYear(),
+  String(today.getMonth() + 1).padStart(2, '0'),
+  String(today.getDate()).padStart(2, '0'),
+].join('-');
+
 function loadTasks() {
   const saved = JSON.parse(localStorage.getItem('wx_added') || '[]');
   tasks = SAMPLE_TASKS.concat(saved);

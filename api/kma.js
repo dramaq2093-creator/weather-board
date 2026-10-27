@@ -152,8 +152,8 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: 'invalid_region', allowed: Object.keys(WEATHER_LOCATIONS) });
   }
 
-  const { kma_key, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } = process.env;
-  if (!kma_key || !SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+  const { KMA_KEY, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } = process.env;
+  if (!KMA_KEY || !SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
     return res.status(500).json({ error: 'server_configuration_missing' });
   }
 
@@ -163,7 +163,7 @@ module.exports = async function handler(req, res) {
     const today = todayParts.year + todayParts.month + todayParts.day;
     const [tasks, weather] = await Promise.all([
       fetchRegionTasks(region, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY),
-      fetchKmaWeather(region, kma_key, today, now),
+      fetchKmaWeather(region, KMA_KEY, today, now),
     ]);
     const resultTasks = tasks.map(task => {
       const decision = judge(task.kind, weather);

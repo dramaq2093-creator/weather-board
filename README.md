@@ -31,6 +31,6 @@
 - '오늘 판단 md로 저장' 버튼을 누르면 현재 일정 표와 판단 기준을 `현장일정_판단_YYYY-MM-DD.md` 파일로 내려받습니다.
 
 ## 지역별 KMA API
-- Vercel 환경변수 `kma_key`, `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`를 설정합니다. Supabase 키는 공개용 키만 사용하고 service role 키는 설정하지 마세요.
+- Vercel 환경변수 `KMA_KEY`, `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`를 설정합니다. Supabase 키는 공개용 키만 사용하고 service role 키는 설정하지 마세요.
 - `GET /api/kma?region=대전`처럼 호출하면 해당 지역의 Supabase 일정, KMA 오늘 최고기온·최대풍속·강수확률, 일정별 판단 결과를 JSON으로 반환합니다.
 - 성공 응답은 `{ "region": "대전", "weather": { "tempMax": 0, "windMax": 0, "rainProb": 0 }, "tasks": [{ "id": "...", "title": "...", "region": "대전", "kind": "야외", "owner": "...", "weather": {}, "level": "ok", "decision": "진행" }] }` 형식입니다. 지역이 없거나 지원되지 않으면 400, upstream 연결에 실패하면 502를 반환합니다.

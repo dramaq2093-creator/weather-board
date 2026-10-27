@@ -1,17 +1,9 @@
 // app.js – 화면 동작 (목록 그리기, 일정 추가)
 
-// 01 단원 : 일정 목록을 코드 안에 둠 (가상 데이터) → 04 단원에서 data/tasks.json 으로 분리
-const SAMPLE_TASKS = [
-  { title: '다중이용시설 안전점검', region: '세종', kind: '야외', owner: '김안전' },
-  { title: '시민 안전체험 행사 운영', region: '보령', kind: '야외', owner: '이행사' },
-  { title: '옥상 태양광 설비 점검', region: '태안', kind: '고소', owner: '박설비' },
-  { title: '하천 수위계 확인', region: '대전', kind: '야외', owner: '최현장' },
-  { title: '청사 외벽 간판 보수', region: '세종', kind: '고소', owner: '정시설' },
-  { title: '비상연락 훈련', region: '대전', kind: '실내', owner: '한상황' },
-];
-
 let tasks = [];
 let weatherByRegion = {};
+let tasksLoaded = false;
+let taskStorageAvailable = true;
 
 const today = new Date();
 document.getElementById('todayDate').textContent = [
@@ -20,9 +12,45 @@ document.getElementById('todayDate').textContent = [
   String(today.getDate()).padStart(2, '0'),
 ].join('-');
 
-function loadTasks() {
-  const saved = JSON.parse(localStorage.getItem('wx_added') || '[]');
-  tasks = SAMPLE_TASKS.concat(saved);
+function readAddedTasks() {
+  const stored = localStorage.getItem('wx_added');
+  const saved = stored ? JSON.parse(stored) : [];
+  if (!Array.isArray(saved)) throw new Error('저장된 추가 일정이 배열 형식이 아닙니다.');
+  return saved;
+}
+
+async function loadTasks() {
+  const message = document.getElementById('dataMessage');
+  let baseTasks;
+  try {
+    const response = await fetch('data/tasks.json');
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    baseTasks = await response.json();
+    if (!Array.isArray(baseTasks)) throw new Error('기본 일정 JSON이 배열 형식이 아닙니다.');
+  } catch (error) {
+    console.error('기본 일정 JSON을 읽지 못했습니다.', error);
+    tasks = [];
+    renderTasks();
+    message.hidden = false;
+    message.textContent = '일정 데이터를 읽지 못했습니다. 배포 주소로 열어 주세요.';
+    document.getElementById('weatherBox').textContent = '일정 데이터를 읽지 못해 날씨를 불러오지 않았습니다.';
+    return false;
+  }
+
+  let savedTasks = [];
+  try {
+    savedTasks = readAddedTasks();
+  } catch (error) {
+    console.error('브라우저에 저장된 추가 일정을 읽지 못했습니다.', error);
+    taskStorageAvailable = false;
+    message.hidden = false;
+    message.textContent = '브라우저에 저장된 추가 일정을 읽지 못했습니다.';
+  }
+
+  tasks = baseTasks.concat(savedTasks);
+  tasksLoaded = true;
+  renderTasks();
+  return true;
 }
 
 function weatherText(w) {
@@ -86,6 +114,15 @@ async function loadWeather() {
 
 function addTask(e) {
   e.preventDefault();
+  const message = document.getElementById('dataMessage');
+  if (!tasksLoaded || !taskStorageAvailable) {
+    message.hidden = false;
+    message.textContent = !tasksLoaded
+      ? '일정 데이터를 읽지 못했습니다. 배포 주소로 열어 주세요.'
+      : '브라우저에 저장된 추가 일정을 확인해 주세요.';
+    return;
+  }
+
   const t = {
     title: document.getElementById('titleInput').value.trim(),
     region: document.getElementById('regionInput').value,
@@ -93,15 +130,23 @@ function addTask(e) {
     owner: document.getElementById('ownerInput').value.trim(),
   };
   if (!t.title || !t.owner) return;
-  const saved = JSON.parse(localStorage.getItem('wx_added') || '[]');
-  saved.push(t);
-  localStorage.setItem('wx_added', JSON.stringify(saved));
+  let saved;
+  try {
+    saved = readAddedTasks();
+    saved.push(t);
+    localStorage.setItem('wx_added', JSON.stringify(saved));
+  } catch (error) {
+    console.error('추가 일정을 브라우저에 저장하지 못했습니다.', error);
+    message.hidden = false;
+    message.textContent = '추가 일정을 저장하지 못했습니다. 브라우저 저장 공간을 확인해 주세요.';
+    return;
+  }
   e.target.reset();
-  loadTasks();
+  tasks.push(t);
   renderTasks();
 }
 
 document.getElementById('taskForm').addEventListener('submit', addTask);
-loadTasks();
-renderTasks();
-loadWeather();
+loadTasks().then(loaded => {
+  if (loaded) loadWeather();
+});

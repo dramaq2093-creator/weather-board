@@ -14,7 +14,8 @@
 - index.html : 화면 구조
 - style.css  : 디자인
 - logic.js   : 판단 규칙만 (화면을 다루는 코드 금지)
-- app.js     : 화면 동작 (목록 그리기, 일정 추가)
+- app.js     : 화면 동작 (JSON 일정 읽기, 목록 그리기, 추가 일정 저장)
+- data/tasks.json : 기본 일정 목록
 - PRD.md · AGENTS.md · CLAUDE.md · README.md : 문서
 
 ## 작업 방식
@@ -26,3 +27,5 @@
 - 가상 데이터만 사용한다. 실제 이름 · 연락처 · 기관 내부 자료를 넣지 않는다.
 - 사용자가 입력한 글자는 textContent 로 표시한다.
 - 비밀 키는 코드 · 채팅 · GitHub 에 넣지 않는다.
+- 기본 일정은 data/tasks.json에서 읽고, 화면에서 추가한 일정만 브라우저 저장소에 저장한다.
+- CLAUDE.md를 고치면 AGENTS.md도 함께 고친다.
